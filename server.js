@@ -235,7 +235,7 @@ const { username, phone, password } = req.body;
   const newUser = new User({
     id: newId,
     username,
-    phone: phone || '',
+    phone: (phone && phone.trim() !== '') ? phone : null,
     password: hashed,
     nickname: username,
     totalPoints: 0,
