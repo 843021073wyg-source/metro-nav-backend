@@ -235,7 +235,20 @@ const { username, phone, password } = req.body;
   const newUser = new User({
     id: newId,
     username,
-    phone: (phone && phone.trim() !== '') ? phone : null,
+   // 先创建用户对象
+const newUser = new User({
+  id: newId,
+  username,
+  password: hashed,
+  nickname: username,
+  totalPoints: 0,
+  remainingPoints: 0,
+  level: 1
+});
+// 只有 phone 有值时才添加
+if (phone && phone.trim() !== '') {
+  newUser.phone = phone;
+}
     password: hashed,
     nickname: username,
     totalPoints: 0,
