@@ -224,10 +224,19 @@ async function completeMission(userId, missionId) {
 // ==================== API 路由 ====================
 // 注册
 app.post('/api/auth/register', async (req, res) => {
-  const { username, phone, password } = req.body;
+  let { username, phone, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: '用户名和密码不能为空' });
-  const existing = await User.findOne({ $or: [{ username }, { phone }] });
+  
+  // 规范化手机号：只当 phone 是有效非空字符串时才保留，否则置为 undefined
+  if (typeof phone === 'string' && phone.trim() === '') phone = undefined;
+  
+  // 构造查询条件：用户名必查，手机号只在有值时查
+  let conditions = [{ username }];
+  if (phone) conditions.push({ phone });
+  
+  const existing = await User.findOne({ $or: conditions });
   if (existing) return res.status(400).json({ error: '用户名或手机号已存在' });
+  
   const hashed = bcrypt.hashSync(password, 10);
   const maxUser = await User.findOne().sort('-id');
   const newId = maxUser ? maxUser.id + 1 : 1;
@@ -240,10 +249,9 @@ app.post('/api/auth/register', async (req, res) => {
     remainingPoints: 0,
     level: 1
   });
-  // 注意：只有 phone 有值且不为空字符串时才添加
-  if (phone && phone.trim() !== '') {
-    newUser.phone = phone;
-  }
+  // 只有 phone 有值才赋值
+  if (phone) newUser.phone = phone;
+  
   await newUser.save();
   const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ token, user: { id: newUser.id, username, nickname: username, level: 1, totalPoints: 0, remainingPoints: 0 } });
